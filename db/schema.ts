@@ -1,26 +1,23 @@
-import {
-  boolean,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core"
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { nanoid } from "nanoid"
 
-export const todos = pgTable(
-  "todos",
+export const bots = pgTable(
+  "bots",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     userId: text("user_id").notNull(), // Clerk user ID
-    title: text("title").notNull(),
-    completed: boolean("completed").notNull().default(false),
+    name: text("name").notNull(),
+    avatar: text("avatar")
+      .notNull()
+      .$defaultFn(() => nanoid()), // Seed for the bot's face
+    job: text("job").notNull(), // What the bot is for, in a phrase
+    instructions: text("instructions"), // How it should go about the job
+    sandboxId: text("sandbox_id"), // Created lazily later
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
   },
-  (table) => [index("todos_user_id_idx").on(table.userId)]
+  (table) => [index("bots_user_id_idx").on(table.userId)]
 )
