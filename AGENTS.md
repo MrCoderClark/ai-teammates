@@ -19,6 +19,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - This is a development project. There is no backwards compatibility and the data is worthless. Prefer data loss: never backfill, migrate, or preserve existing rows, and never spend effort on keeping data working. Every schema change means a clean slate.
 - When a push would drop or truncate data, accept the data loss with `npm run db:push -- --force` rather than working around it.
 
+## Forms
+
+Reference implementation: `components/bot-dialog.tsx`, `actions/bot.ts`, and `insertBotSchema` in `db/schema.ts`.
+
+- One schema validates both sides. Derive it from the Drizzle table with `createInsertSchema` from `drizzle-zod` in `db/schema.ts`, refine fields with user-facing messages (`trim`, `min`, `max`), and `.pick()` only the fields a user may set. Never include `id`, `userId`, or timestamps. Export the type with `z.infer`.
+- Server actions live in `actions/<entity>.ts` with `"use server"`. Call `auth()` from `@clerk/nextjs/server`, throw if `!isAuthenticated`, and take `userId` from the session, never from the input. Re-validate with `schema.parse(input)` before writing, call `revalidatePath`, and return the created row.
+- Client forms use `react-hook-form` with `zodResolver(schema)` from `@hookform/resolvers/zod`. Render each input through `Controller` inside shadcn `FieldGroup` > `Field` with `FieldLabel` and `FieldError`. Set `data-invalid` on `Field` and `aria-invalid` on the control. Do not use raw `div`/`Label` layouts or a `Form` wrapper component.
+- Nullable text columns are `string | null` in the schema type. Bind them as `value={field.value ?? ""}`.
+- In dialogs, give the `<form>` an `id` and put the submit `Button` in `DialogFooter` with `form="<id>"`. Cancel is `DialogClose render={<Button variant="outline" />}`. While submitting, disable the submit button and show `<Spinner data-icon="inline-start" />`.
+- Don't call `nanoid()` or other random values for `defaultValues` during render. Reset the form with fresh values in the dialog's `onOpenChange` when it opens.
+- A preset or template fills every field it implies (for example name, job, and instructions) with `setValue(..., { shouldDirty: true, shouldValidate: true })`.
+- Report outcomes with `toast.add({ type: "success" | "error", title, description })` from `@/components/ui/toast` (Base UI, not sonner). On success, close the dialog and name what was created. On error, keep the dialog open so input isn't lost.
+- Dialog components own their trigger: accept `children` as the trigger content and render `DialogTrigger render={<Button ... />}`, so server pages can use them without passing client components as props.
+- Install `@hookform/resolvers` with `--legacy-peer-deps`. Its optional peers conflict over `effect` and `zod` versions that this project doesn't use.
+
 ## DiceBear
 
 Use DiceBear 10. Documentation: https://www.dicebear.com/llms.txt
