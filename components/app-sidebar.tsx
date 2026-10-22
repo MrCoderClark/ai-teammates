@@ -1,8 +1,10 @@
 import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNowStrict } from "date-fns"
+import Link from "next/link"
 
 import { ChatAvatar } from "@/components/chat-avatar"
 import { NewChatMenu } from "@/components/new-chat-menu"
+import { SearchCommand } from "@/components/search-command"
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import { getChats } from "@/queries/bots"
 
@@ -20,9 +23,12 @@ export async function AppSidebar() {
   const chats = await getChats()
 
   return (
-    <Sidebar>
-      <SidebarHeader className="flex-row justify-end">
-        <NewChatMenu />
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex justify-end">
+          <NewChatMenu />
+        </div>
+        <SearchCommand chats={chats} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -30,7 +36,11 @@ export async function AppSidebar() {
             <SidebarMenu>
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id}>
-                  <SidebarMenuButton size="lg">
+                  <SidebarMenuButton
+                    size="lg"
+                    tooltip={chat.name ?? chat.bot.name}
+                    render={<Link href={`/chats/${chat.id}`} />}
+                  >
                     <ChatAvatar seed={chat.bot.avatar} />
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <div className="flex items-baseline gap-2">
@@ -53,7 +63,10 @@ export async function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             {/* The UserButton trigger fills the menu button so the whole row is clickable */}
-            <SidebarMenuButton render={<div />} className="p-0">
+            <SidebarMenuButton
+              render={<div />}
+              className="p-0 group-data-[collapsible=icon]:p-0!"
+            >
               <UserButton
                 showName
                 appearance={{
@@ -65,7 +78,7 @@ export async function AppSidebar() {
                       "w-full! flex-row-reverse! justify-end! gap-2! text-sidebar-foreground!",
                     userButtonAvatarBox: "size-4! shrink-0",
                     userButtonOuterIdentifier:
-                      "truncate p-0! text-sm! font-normal! text-inherit!",
+                      "truncate p-0! text-sm! font-normal! text-inherit! group-data-[collapsible=icon]:hidden!",
                   },
                 }}
               />
@@ -73,6 +86,7 @@ export async function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }
