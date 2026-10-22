@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ShuffleIcon } from "lucide-react"
 import { nanoid } from "nanoid"
@@ -70,7 +71,14 @@ function emptyBot(): InsertBot {
   return { name: "", avatar: nanoid(), job: "", instructions: "" }
 }
 
-function BotDialog({ children }: { children: React.ReactNode }) {
+function BotDialog({
+  children,
+  handle,
+}: {
+  children?: React.ReactNode
+  // Lets triggers outside the dialog, like a menu item, open it with handle.open(null)
+  handle?: DialogPrimitive.Handle<unknown>
+}) {
   const [open, setOpen] = React.useState(false)
   const form = useForm<InsertBot>({
     resolver: zodResolver(insertBotSchema),
@@ -110,10 +118,12 @@ function BotDialog({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={<Button variant="secondary" size="lg" />}>
-        {children}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange} handle={handle}>
+      {children && (
+        <DialogTrigger render={<Button variant="secondary" size="lg" />}>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New bot</DialogTitle>
