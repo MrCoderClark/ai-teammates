@@ -2,8 +2,19 @@
 
 import * as React from "react"
 import { useChat } from "@ai-sdk/react"
+import type { TriggerChatTransport } from "@trigger.dev/sdk/chat"
+import {
+  useLoadTranscript,
+  useTriggerChatTransport,
+} from "@trigger.dev/sdk/chat/react"
+import type { UIMessage } from "ai"
 import { ArrowUpIcon, MessageSquareIcon, SquareIcon } from "lucide-react"
 
+import {
+  loadChatTranscript,
+  mintChatAccessToken,
+  startChatSession,
+} from "@/actions/chat"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import {
   Empty,
@@ -28,12 +39,58 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 import { Spinner } from "@/components/ui/spinner"
+import type { chatAgent } from "@/trigger/chat"
 
-// Messages live in memory only, so they're gone on reload
+// Loads the saved transcript first, so the conversation survives a reload
 function Chat({ chatId, name }: { chatId: string; name: string }) {
+  const transport = useTriggerChatTransport<typeof chatAgent>({
+    task: "chat",
+    accessToken: ({ chatId }) => mintChatAccessToken(chatId),
+    startSession: ({ chatId, clientData }) =>
+      startChatSession({ chatId, clientData }),
+  })
+  const { messages, isLoading } = useLoadTranscript(
+    chatId,
+    loadChatTranscript,
+    { transport }
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Spinner />
+      </div>
+    )
+  }
+
+  return (
+    <ChatView
+      chatId={chatId}
+      name={name}
+      transport={transport}
+      initialMessages={messages}
+    />
+  )
+}
+
+function ChatView({
+  chatId,
+  name,
+  transport,
+  initialMessages,
+}: {
+  chatId: string
+  name: string
+  transport: TriggerChatTransport
+  initialMessages: UIMessage[]
+}) {
   const [input, setInput] = React.useState("")
   const formRef = React.useRef<HTMLFormElement>(null)
-  const { messages, sendMessage, status, stop } = useChat({ id: chatId })
+  const { messages, sendMessage, status, stop } = useChat({
+    id: chatId,
+    messages: initialMessages,
+    transport,
+  })
 
   const text = input.trim()
   const isStreaming = status === "submitted" || status === "streaming"
